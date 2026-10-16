@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List | Quản Lý Công Việc</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        // Áp dụng class dark-theme ngay lập tức để tránh chớp màn hình khi F5
+        if (localStorage.getItem('todo_theme') === 'dark') {
+            document.documentElement.classList.add('dark-theme');
+        }
+    </script>
+</head>
+<body>
+    <div class="background-decorations">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <div class="app-wrapper">
+        <div class="app-layout">
+            <!-- SIDEBAR: Ô Input "Tìm kiếm bài viết" & Bộ lọc -->
+            <aside class="app-sidebar" id="app-sidebar">
+                <div class="sidebar-brand">
+                    <div class="brand-icon">
+                        <i class="fa-solid fa-cubes"></i>
+                    </div>
+                    <div>
+                        <h2 class="brand-title">Quản Trị</h2>
+                        <span class="brand-subtitle">Tìm kiếm & Bộ lọc</span>
+                    </div>
+                </div>
+
+                <!-- Ô Input Tìm kiếm bài viết ở Sidebar (Real-time Search) -->
+                <div class="sidebar-section">
+                    <label class="sidebar-label" for="search-input">
+                        <i class="fa-solid fa-magnifying-glass"></i> Tìm kiếm bài viết
+                    </label>
+                    <div class="search-input-wrapper">
+                        <input 
+                            type="text" 
+                            id="search-input" 
+                            class="search-input" 
+                            placeholder="Tìm kiếm bài viết..." 
+                            autocomplete="off"
+                        >
+                        <button type="button" id="btn-clear-search" class="btn-clear-search" title="Xóa tìm kiếm" aria-label="Xóa tìm kiếm" style="display: none;">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div class="search-stats" id="search-stats" style="display: none;">
+                        Tìm thấy <strong id="search-matches-count">0</strong> bài viết
+                    </div>
+                </div>
+
+                <!-- Chế độ xem: Danh sách / Lịch ngày / Lịch tuần / Lịch tháng -->
+                <div class="sidebar-section">
+                    <span class="sidebar-label">
+                        <i class="fa-solid fa-table-cells-large"></i> Chế độ hiển thị
+                    </span>
+                    <ul class="sidebar-menu" id="sidebar-view-menu">
+                        <li class="sidebar-menu-item active" data-view="list">
+                            <i class="fa-solid fa-list-check"></i>
+                            <span>Danh sách</span>
+                        </li>
+                        <li class="sidebar-menu-item" data-view="day">
+                            <i class="fa-solid fa-calendar-day"></i>
+                            <span>Lịch ngày</span>
+                        </li>
+                        <li class="sidebar-menu-item" data-view="week">
+                            <i class="fa-solid fa-calendar-week"></i>
+                            <span>Lịch tuần</span>
+                        </li>
+                        <li class="sidebar-menu-item" data-view="month">
+                            <i class="fa-solid fa-calendar-days"></i>
+                            <span>Lịch tháng</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Lọc theo mức độ ưu tiên ở Sidebar -->
+                <div class="sidebar-section">
+                    <span class="sidebar-label">
+                        <i class="fa-solid fa-filter"></i> Lọc theo mức độ
+                    </span>
+                    <ul class="sidebar-menu" id="priority-filter-menu">
+                        <li class="sidebar-menu-item active" data-priority="all">
+                            <i class="fa-solid fa-border-all"></i>
+                            <span>Tất cả</span>
+                        </li>
+                        <li class="sidebar-menu-item" data-priority="important">
+                            <i class="fa-solid fa-fire text-danger"></i>
+                            <span>Quan trọng</span>
+                        </li>
+                        <li class="sidebar-menu-item" data-priority="normal">
+                            <i class="fa-solid fa-bolt text-primary"></i>
+                            <span>Bình thường</span>
+                        </li>
+                        <li class="sidebar-menu-item" data-priority="low">
+                            <i class="fa-solid fa-seedling text-success"></i>
+                            <span>Thấp</span>
+                        </li>
+                        <li class="sidebar-menu-item menu-item-overdue" data-priority="overdue">
+                            <i class="fa-solid fa-triangle-exclamation text-danger"></i>
+                            <span>Đã quá hạn</span>
+                            <span class="sidebar-badge-count" id="sidebar-overdue-count" style="display: none;">0</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-footer-info">
+                    <i class="fa-regular fa-lightbulb"></i>
+                    <span>Chuyển đổi linh hoạt giữa danh sách và lịch ngày, tuần, tháng.</span>
+                </div>
+            </aside>
+
+            <!-- MAIN CONTENT: TODO CARD -->
+            <div class="todo-card">
+            <!-- 1. HEADER SECTION -->
+            <header class="app-header">
+                <div class="header-top">
+                    <div class="greeting-box">
+                        <div class="avatar-badge">
+                            <i class="fa-solid fa-user-astronaut"></i>
+                        </div>
+                        <div>
+                            <h1 class="greeting-title" id="greeting-title">
+                                Chào <span class="user-highlight" id="user-name" title="Nhấp để đổi tên">Phúc</span>, hôm nay bạn thế nào? <span class="wave-emoji">👋</span>
+                            </h1>
+                            <p class="greeting-subtitle" id="greeting-subtitle">Chúc bạn một ngày làm việc hiệu quả và tràn đầy năng lượng!</p>
+                        </div>
+                    </div>
+                    <!-- Theme Toggle Switch Button -->
+                    <div class="theme-switch-wrapper">
+                        <button type="button" class="theme-switch-btn" id="theme-toggle" aria-label="Chuyển đổi giao diện Sáng / Tối" title="Chuyển đổi Chế độ Sáng / Tối">
+                            <i class="fa-solid fa-sun icon-sun"></i>
+                            <i class="fa-solid fa-moon icon-moon"></i>
+                            <span class="switch-slider"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="clock-card">
+                    <div class="clock-display">
+                        <i class="fa-regular fa-clock clock-icon"></i>
+                        <span class="clock-time" id="realtime-clock">00:00:00</span>
+                        <span class="clock-period" id="clock-period">AM</span>
+                    </div>
+                    <div class="date-display" id="realtime-date">Thứ Sáu, ngày 16 tháng 10, 2026</div>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <!-- 2. INPUT SECTION -->
+                <section class="input-section">
+                    <form id="todo-form" class="todo-form" autocomplete="off" novalidate>
+                        <div class="form-row-main">
+                            <div class="input-wrapper">
+                                <i class="fa-solid fa-list-check input-icon"></i>
+                                <input 
+                                    type="text" 
+                                    id="task-input" 
+                                    class="task-input" 
+                                    placeholder="Nhập công việc cần làm hôm nay..." 
+                                    maxlength="120"
+                                >
+                            </div>
+                        </div>
+                        <div class="form-row-options">
+                            <!-- Chọn mức độ ưu tiên -->
+                            <div class="select-wrapper">
+                                <i class="fa-solid fa-flag select-icon"></i>
+                                <select id="priority-select" class="priority-select" title="Chọn mức độ ưu tiên" aria-label="Mức độ ưu tiên">
+                                    <option value="important">Quan trọng</option>
+                                    <option value="normal" selected>Bình thường</option>
+                                    <option value="low">Thấp</option>
+                                </select>
+                            </div>
+                            <!-- Chọn thời gian hết hạn (Deadline) -->
+                            <div class="deadline-input-wrapper">
+                                <i class="fa-regular fa-calendar-days deadline-input-icon"></i>
+                                <input 
+                                    type="datetime-local" 
+                                    id="task-deadline" 
+                                    class="task-deadline-input" 
+                                    title="Chọn thời gian hết hạn (Hạn chót)"
+                                >
+                            </div>
+                            <button type="submit" class="btn-add" id="btn-add">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Thêm</span>
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- CẢNH BÁO HẾT HẠN (Alert Banner) -->
+                <div class="overdue-alert-banner" id="overdue-banner" style="display: none;">
+                    <div class="alert-banner-left">
+                        <div class="alert-icon-pulse">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <strong>Cảnh báo quá hạn:</strong>
+                            <span>Bạn có <span id="overdue-count">0</span> công việc đã hết hạn thực hiện!</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-view-overdue" id="btn-view-overdue">Xem chi tiết</button>
+                </div>
+
+                <!-- THANH CHUYỂN ĐỔI CHẾ ĐỘ XEM (View Switcher Tabs) -->
+                <div class="view-mode-bar">
+                    <div class="view-tabs" id="view-tabs" role="tablist" aria-label="Chế độ hiển thị">
+                        <button type="button" class="view-tab-btn active" data-view="list" role="tab" aria-selected="true">
+                            <i class="fa-solid fa-list-check"></i>
+                            <span>Danh sách</span>
+                        </button>
+                        <button type="button" class="view-tab-btn" data-view="day" role="tab" aria-selected="false">
+                            <i class="fa-solid fa-calendar-day"></i>
+                            <span>Lịch ngày</span>
+                        </button>
+                        <button type="button" class="view-tab-btn" data-view="week" role="tab" aria-selected="false">
+                            <i class="fa-solid fa-calendar-week"></i>
+                            <span>Lịch tuần</span>
+                        </button>
+                        <button type="button" class="view-tab-btn" data-view="month" role="tab" aria-selected="false">
+                            <i class="fa-solid fa-calendar-days"></i>
+                            <span>Lịch tháng</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 1. GIAO DIỆN DANH SÁCH (List View) -->
+                <div id="list-view-container" class="view-container">
+                    <!-- Filter & Controls Toolbar -->
+                    <div class="tasks-toolbar">
+                        <div class="filter-group">
+                            <button type="button" class="filter-btn active" data-filter="all">Tất cả</button>
+                            <button type="button" class="filter-btn" data-filter="active">Đang làm</button>
+                            <button type="button" class="filter-btn" data-filter="completed">Đã xong</button>
+                        </div>
+                        <button type="button" class="btn-clear-completed" id="btn-clear-completed" style="display: none;">
+                            <i class="fa-regular fa-trash-can"></i> Xóa việc đã xong
+                        </button>
+                    </div>
+
+                    <!-- 3. TASK LIST SECTION -->
+                    <section class="task-section">
+                        <ul class="task-list" id="task-list" aria-label="Danh sách công việc">
+                            <!-- Dynamic task items will be rendered here -->
+                        </ul>
+
+                        <!-- Empty State Placeholder -->
+                        <div class="empty-state" id="empty-state">
+                            <div class="empty-icon-wrap">
+                                <i class="fa-regular fa-calendar-check"></i>
+                            </div>
+                            <h3>Chưa có công việc nào!</h3>
+                            <p>Thêm các mục tiêu hoặc nhiệm vụ mới để bắt đầu sắp xếp ngày của bạn.</p>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- 2. GIAO DIỆN LỊCH (Calendar Views: Ngày / Tuần / Tháng) -->
+                <div id="calendar-view-container" class="view-container" style="display: none;">
+                    <div class="calendar-header">
+                        <div class="cal-nav-buttons">
+                            <button type="button" class="btn-cal-nav" id="btn-cal-prev" title="Kỳ trước" aria-label="Kỳ trước">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <button type="button" class="btn-cal-today" id="btn-cal-today">Hôm nay</button>
+                            <button type="button" class="btn-cal-nav" id="btn-cal-next" title="Kỳ sau" aria-label="Kỳ sau">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <h2 class="cal-period-title" id="cal-period-title">Tháng 10, 2026</h2>
+                        <div class="cal-header-meta">
+                            <span class="cal-meta-badge" id="cal-meta-badge">
+                                <i class="fa-solid fa-calendar-check"></i> <span id="cal-meta-count">0 việc</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Calendar Body (renders Month, Week, or Day dynamically) -->
+                    <div class="calendar-body" id="calendar-body">
+                        <!-- Dynamic calendar content rendered by JavaScript -->
+                    </div>
+                </div>
+            </main>
+
+            <!-- 4. FOOTER SECTION -->
+            <footer class="app-footer">
+                <div class="stats-container">
+                    <div class="stat-badge">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span>Tổng số công việc: <strong id="total-count">0</strong></span>
+                    </div>
+                    <div class="sub-stats">
+                        <span class="active-count"><i class="fa-solid fa-circle-dot"></i> Đang làm: <strong id="active-count">0</strong></span>
+                        <span class="completed-count"><i class="fa-solid fa-circle-check"></i> Đã hoàn thành: <strong id="completed-count">0</strong></span>
+                    </div>
+                </div>
+            </footer>
+        </div>
+        </div><!-- /.app-layout -->
+    </div><!-- /.app-wrapper -->
+
+    <!-- Application Script -->
+    <script src="js/app.js"></script>
+</body>
+</html>
